@@ -143,10 +143,10 @@ jobs:
           make
           make install
           cd ${GITHUB_WORKSPACE}
-          find -iname 'AppRun' | xargs -i -t -exec cp {} /home/runner/work/Qemu_Appimage/Qemu_Appimage/lucas/
-          find -iname 'qemu.desktop' | xargs -i -t -exec cp {} /home/runner/work/Qemu_Appimage/Qemu_Appimage/lucas/
-          find -iname 'qemu_logo_no_text.svg' | xargs -i -t -exec cp {} /home/runner/work/Qemu_Appimage/Qemu_Appimage/lucas/
-          find -iname 'libunionpreload.so' | xargs -i -t -exec cp {} /home/runner/work/Qemu_Appimage/Qemu_Appimage/lucas/
+          cp -f AppRun ${GITHUB_WORKSPACE}/lucas/
+          cp -f qemu.desktop ${GITHUB_WORKSPACE}/lucas/
+          cp -f qemu_logo_no_text.svg ${GITHUB_WORKSPACE}/lucas/
+          cp -f libunionpreload.so ${GITHUB_WORKSPACE}/lucas/
 
       # Runs a set of commands using the runners shell
       - name: Build appimage
