@@ -1,4 +1,4 @@
-name: lutris CI
+name: Compiled CI
 
 # Controls when the action will run.
 on:
@@ -145,7 +145,10 @@ jobs:
           cd ${GITHUB_WORKSPACE} && cp qemu.desktop lucas/ && find lucas/ -depth -iname 'libglib-2.0.so.0' -type f -delete
           find ${GITHUB_WORKSPACE}/lucas/usr/bin/ -type f | xargs strip
           find ${GITHUB_WORKSPACE}/lucas/usr/libexec/ -type f | xargs strip
+          find ${GITHUB_WORKSPACE}/usr/lib/x86_64-linux-gnu/qemu/ -type f | xargs strip
           ARCH=x86_64 VERSION=git find -name 'appimagetool**' -type f -exec {} ${GITHUB_WORKSPACE}/lucas/ \;
+          mkdir dist
+          mv *.AppImage* dist/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
