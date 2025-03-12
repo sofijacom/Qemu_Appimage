@@ -1,13 +1,11 @@
-# This is a basic workflow to help you get started with Actions
+name: Universal CI
 
-name: universal CI
-
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
-  # Build at 00:00 on every 12th day-of-month.
+  # Build at 00:00 every 6th day
   schedule:
     - cron: "0 0 */6 * *"
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [ main ]
     paths-ignore: [ '**/README.md' ]
@@ -20,29 +18,61 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build-stable"
-  build-stable:
-    # The type of runner that the job will run on
+  build:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a set of commands using the runners shell
-      - name: Build appimage
+      - name: Make AppImage
         run: |
           echo $PATH
           chmod a+x qemu-universal.sh
           ./qemu-universal.sh
+          mkdir dist
+          mv *.AppImage* dist/
 
-      - name: release
-        uses: "marvinpinto/action-automatic-releases@6273874b61ebc8c71f1a61b2d98e234cf389b303"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          title: Continuous universal
-          automatic_release_tag: continuous-universal
+          name: AppImage
+          path: 'dist/*.AppImage*'
+
+      - name: Upload version artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version
+          path: 'dist/version'
+
+  release:
+    needs: [build]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AppImage
+
+      - name: Delete Previous Release
+        run: |
+          gh release delete "${APP_VERSION}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag -y || echo "No release to delete"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Continuous universal"
+          tag_name: continuous-universal
           prerelease: false
           draft: false
-          files: /home/runner/work/Qemu_Appimage/Qemu_Appimage/*.AppImage*
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          generate_release_notes: false
+          make_latest: true
+          files: |
+            *.AppImage*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

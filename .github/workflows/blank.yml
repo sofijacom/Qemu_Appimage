@@ -1,13 +1,11 @@
-# This is a basic workflow to help you get started with Actions
+name: Compiled CI
 
-name: compiled CI
-
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
-  # Build at 00:00 on every 12th day-of-month.
+  # Build at 00:00 every 6th day
   schedule:
     - cron: "0 0 */6 * *"
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [ main ]
     paths-ignore: [ '**/README.md' ]
@@ -20,17 +18,13 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build-stable"
-  build-stable:
-    # The type of runner that the job will run on
+  build:
     runs-on: ubuntu-20.04
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      - name: Prerequisites
+      - name: Make AppImage
         run: |
           echo $PATH
           sudo apt-get update && sudo apt-get upgrade -y
@@ -143,27 +137,59 @@ jobs:
           make
           make install
           cd ${GITHUB_WORKSPACE}
-          find -iname 'AppRun' | xargs -i -t -exec cp {} /home/runner/work/Qemu_Appimage/Qemu_Appimage/lucas/
-          find -iname 'qemu.desktop' | xargs -i -t -exec cp {} /home/runner/work/Qemu_Appimage/Qemu_Appimage/lucas/
-          find -iname 'qemu_logo_no_text.svg' | xargs -i -t -exec cp {} /home/runner/work/Qemu_Appimage/Qemu_Appimage/lucas/
-          find -iname 'libunionpreload.so' | xargs -i -t -exec cp {} /home/runner/work/Qemu_Appimage/Qemu_Appimage/lucas/
-
-      # Runs a set of commands using the runners shell
-      - name: Build appimage
-        run: |
-          
+          cp -f AppRun ${GITHUB_WORKSPACE}/lucas/
+          cp -f qemu.desktop ${GITHUB_WORKSPACE}/lucas/
+          cp -f qemu_logo_no_text.svg ${GITHUB_WORKSPACE}/lucas/
+          cp -f libunionpreload.so ${GITHUB_WORKSPACE}/lucas/
           find -name 'linuxdeploy**' -type f -exec {} --appdir ${GITHUB_WORKSPACE}/lucas/ \;
           cd ${GITHUB_WORKSPACE} && cp qemu.desktop lucas/ && find lucas/ -depth -iname 'libglib-2.0.so.0' -type f -delete
           find ${GITHUB_WORKSPACE}/lucas/usr/bin/ -type f | xargs strip
           find ${GITHUB_WORKSPACE}/lucas/usr/libexec/ -type f | xargs strip
           ARCH=x86_64 VERSION=git find -name 'appimagetool**' -type f -exec {} ${GITHUB_WORKSPACE}/lucas/ \;
+          mkdir dist
+          mv *.AppImage* dist/
 
-      - name: release
-        uses: "marvinpinto/action-automatic-releases@6273874b61ebc8c71f1a61b2d98e234cf389b303"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          title: Continuous build
-          automatic_release_tag: continuous-stable
+          name: AppImage
+          path: 'dist/*.AppImage*'
+
+      - name: Upload version artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: version
+          path: 'dist/version'
+
+  release:
+    needs: [build]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download AppImage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AppImage
+
+      - name: Delete Previous Release
+        run: |
+          gh release delete "${APP_VERSION}" --repo "${GITHUB_REPOSITORY}" --cleanup-tag -y || echo "No release to delete"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Continuous build"
+          tag_name: continuous-stable
           prerelease: false
           draft: false
-          files: /home/runner/work/Qemu_Appimage/Qemu_Appimage/*.AppImage*
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          generate_release_notes: false
+          make_latest: true
+          files: |
+            *.AppImage*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
