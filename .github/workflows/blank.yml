@@ -147,7 +147,8 @@ jobs:
           find ${GITHUB_WORKSPACE}/lucas/usr/libexec/ -type f | xargs strip
           export ARCH=x86_64
           export VERSION=git
-          find ${GITHUB_WORKSPACE} -name 'uruntime**' -type f -exec {} --appimage-mkdwarfs -f --set-owner 0 --set-group 0 --no-history --no-create-timestamp --compression zstd:level=22 -S26 -B8 --header {} -i ${GITHUB_WORKSPACE}/lucas/ -o QEMU-"$VERSION"-"$ARCH".AppImage \;
+          cd ${GITHUB_WORKSPACE}
+          ./uruntime --appimage-mkdwarfs -f --set-owner 0 --set-group 0 --no-history --no-create-timestamp --compression zstd:level=22 -S26 -B8 --header uruntime -i ${GITHUB_WORKSPACE}/lucas/ -o QEMU-"$VERSION"-"$ARCH".AppImage \; 
           mkdir dist
           mv *.AppImage* dist/
 
