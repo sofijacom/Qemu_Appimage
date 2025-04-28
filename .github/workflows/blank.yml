@@ -94,7 +94,7 @@ jobs:
            xsltproc \
            zlib1g-dev
           wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage" -O linuxdeploy ; chmod a+x linuxdeploy
-          wget -q "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool ; chmod a+x appimagetool
+          wget -q "https://github.com/VHSgunzo/uruntime/releases/download/v0.3.9/uruntime-appimage-dwarfs-x86_64" -O urutime ; chmod a+x urutime
           sudo pip3 install meson
           wget -c -q "https://download.gnome.org/sources/glib/2.80/glib-2.80.2.tar.xz"
           tar -xf glib-2.80.2.tar.xz
@@ -145,7 +145,9 @@ jobs:
           cd ${GITHUB_WORKSPACE} && cp qemu.desktop lucas/ && find lucas/ -depth -iname 'libglib-2.0.so.0' -type f -delete
           find ${GITHUB_WORKSPACE}/lucas/usr/bin/ -type f | xargs strip
           find ${GITHUB_WORKSPACE}/lucas/usr/libexec/ -type f | xargs strip
-          ARCH=x86_64 VERSION=git find -name 'appimagetool**' -type f -exec {} ${GITHUB_WORKSPACE}/lucas/ \;
+          export ARCH=x86_64
+          export VERSION=git
+          find ${GITHUB_WORKSPACE} -name 'uruntime**' -type f -exec {} --appimage-mkdwarfs -f --set-owner 0 --set-group 0 --no-history --no-create-timestamp --compression zstd:level=22 -S26 -B8 --header uruntime -i ${GITHUB_WORKSPACE}/lucas/ -o QEMU-"$VERSION"-"$ARCH".AppImage \;
           mkdir dist
           mv *.AppImage* dist/
 
